@@ -4,4 +4,4 @@ I am another paragraph.
 
 I am the third paragraph.
 
-I am a paragraph *with* **some** [interesting](https://shit.com) `yeah!`
+I am a paragraph *with* **some** [interesting](https://google.com) `things` `yeah!`
