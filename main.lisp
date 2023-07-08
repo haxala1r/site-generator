@@ -81,7 +81,7 @@
 
 (automate-tags
  html head body div span style
- codeblock
+ code
  p b i a h1 h2 h3 h4 h5 h6 h7)
 
 (defun generate-from-file (fname &optional out-stream)

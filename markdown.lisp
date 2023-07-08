@@ -244,7 +244,7 @@
 	(evaluators `((text . ,(lambda (ss) (conc-strs ss)))
 		      (italic . ,(lambda (ss) (i (conc-strs ss))))
 		      (bold . ,(lambda (ss) (b (conc-strs ss))))
-		      (code-block . ,(lambda (ss) (codeblock (conc-strs ss))))
+		      (code-block . ,(lambda (ss) (code (conc-strs ss))))
 		      (newline . ,(lambda (ss) (declare (ignore ss)) " "))
 		      (eof . ,(lambda (ss) (declare (ignore ss)) ""))
 		      (link-text . ,(lambda (ss) (conc-strs ss)))
