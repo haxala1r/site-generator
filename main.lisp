@@ -1,3 +1,4 @@
+(in-package :site-generator)
 
 ; Some utility functions for fun.
 (defun take (n list)
@@ -91,3 +92,16 @@
 (defun generate-html (in out)
   (with-open-file (st out :direction :output :if-exists :supersede)
     (generate-from-file in st)))
+
+
+(defvar *markdown-file* nil)
+(defun main (template &rest content-files)
+  "template should be a pathname to a .lisp file that contains the actual lisp code to be executed.
+   The lisp code should be made with the html tag macros defined above (like html, body, p, i etc.)
+   and should (when evaluated) generate html code.
+   In template, there should be one form that generates html code from the current markdown file
+   using the global variable *markdown-file* (like (process-markdown *markdown-file*)).
+   Then, content-files will be a list of markdown files to be processed with that template."
+  (loop for i in content-files do
+    (let ((*markdown-file* i))
+      (generate-html template (make-pathname :type "html" :defaults i)))))

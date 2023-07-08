@@ -2,18 +2,18 @@
   (head
     (style
       (css
-	"html" (background-color black)
-	"body" (margin 0)
-	"#navbar" (overflow hidden background-color "#333")
+	"html" (background-color "#222")
+	"body" (margin "40px" font-size "18px")
+	"#navbar" (overflow hidden padding-left "25%")
 	"#navbar a" (float left color "#f2f2f2" text-align center
 			   text-decoration none padding "10px 14px")
-	"#navbar a:hover" (color black background-color "#ddd")
-	"#main" (width "60%" padding "0 20%" )
-	"#main div" (
-		     width "100%" text-align center
-		     color white float left
-		     outline solid outline-color white
-		     outline-width "2px"))))
+	"#navbar a:hover" (color "#ff5733" background-color "#222")
+	"#main" (top-margin "10px" width "50%" padding "2px 20%")
+	"#main div" (padding "0 8px"
+		     width "100%"
+		     color "#ccc" background-color "#444"
+		     float left border "1px solid black" box-shadow "6px 6px 20px black")
+	"a" (color "#ff5733" text-decoration none))))
   (body
     (div :attrs (id "navbar")
       (a :attrs (href "/")
@@ -22,4 +22,4 @@
 	(b "Site Generator")))
     (div :attrs (id "main")
       (div
-	(p "hello world!")))))
+	(process-markdown *markdown-file*)))))

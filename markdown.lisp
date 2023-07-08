@@ -1,3 +1,4 @@
+(in-package :site-generator)
 
 (defmacro if-bind (pred then &optional else)
   "This is a somewhat important and yet very simple little macro.
