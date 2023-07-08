@@ -1,3 +1,4 @@
 (defpackage :site-generator
   (:use :cl)
-  (:export main))
+  (:export #:sane-stringify
+	   #:main))
