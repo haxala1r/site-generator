@@ -1,4 +1,5 @@
 (defpackage :site-generator
   (:use :cl)
   (:export #:sane-stringify
-	   #:main))
+	   #:main
+	   #:entry-point))

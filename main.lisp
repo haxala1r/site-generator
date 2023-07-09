@@ -105,3 +105,11 @@
   (loop for i in content-files do
     (let ((*markdown-file* i))
       (generate-html template (make-pathname :type "html" :defaults i)))))
+
+
+(defun entry-point ()
+  (in-package :site-generator)
+  (let ((args (uiop:raw-command-line-arguments)))
+    (if (> (length args) 2)
+	(apply #'site-generator:main (rest args))
+	(format t "Usage: ~a template-file {one or more markdown files...}" (first args)))))
