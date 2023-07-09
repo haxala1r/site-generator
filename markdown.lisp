@@ -24,6 +24,7 @@
 	    ("]" linktext-end)
 	    ("(" link-begin)
 	    (")" link-end)
+	    ("#" hash)
 	    (,(format nil "~%") newline))))
     (unless (string= text "")
       (loop for i in tokens
@@ -135,6 +136,7 @@
 (define-single-matcher eof)
 (define-single-matcher text)
 (define-single-matcher star)
+(define-single-matcher hash)
 (define-single-matcher backtick)
 
 (defun code-block-parser (tokens)
@@ -229,8 +231,32 @@
 		   (second it))
 	     nil)))
 
+(defun skip (list n)
+  (if (<= n 0)
+      list
+      (skip (cdr list) (1- n))))
+
+(defun h-parser (tokens n)
+  (if-bind (apply #'general-match tokens
+		  (append (loop for i from 1 to n collect #'hash-parser)
+			  '((code-block-parser link-parser bold-parser italic-parser text-parser *)
+			    (newline-parser eof-parser))))
+	   (list (make-ast-node :value (butlast (skip (first it) n))
+				:type (intern (format nil "H~a" n)))
+		 (second it))
+	   nil))
+
+
+(defun header-parser (tokens)
+  "does a header."
+  (some #'identity
+	(mapcar (lambda (n)
+		  (h-parser tokens n))
+		(loop for i from 1 to 6 collect i))))
+	     
+
 (defun keep-parsing (tokens)
-  (if-bind (paragraph-parser tokens)
+  (if-bind (match-parser tokens '(header-parser paragraph-parser))
 	   (cons (first it) (keep-parsing (second it)))
 	   nil))
 
@@ -250,7 +276,13 @@
 		      (link-text . ,(lambda (ss) (conc-strs ss)))
 		      (link-link . ,(lambda (ss) (conc-strs ss)))
 		      (link . ,(lambda (ss) (a :attrs (href (second ss)) (first ss))))
-		      (paragraph . ,(lambda (ss) (p (conc-strs ss)))))))
+		      (paragraph . ,(lambda (ss) (p (conc-strs ss))))
+		      (h1 . ,(lambda (ss) (h1 (conc-strs ss))))
+		      (h2 . ,(lambda (ss) (h2 (conc-strs ss))))
+		      (h3 . ,(lambda (ss) (h3 (conc-strs ss))))
+		      (h4 . ,(lambda (ss) (h4 (conc-strs ss))))
+		      (h5 . ,(lambda (ss) (h5 (conc-strs ss))))
+		      (h6 . ,(lambda (ss) (h6 (conc-strs ss)))))))
     (funcall (or (cdr (assoc (ast-node-type ast) evaluators)) default)
 	     (if (stringp (ast-node-value ast))
 		 (list (ast-node-value ast))
@@ -265,9 +297,13 @@
 		   (reverse col))))
       (format nil "~{~a~%~}" (c nil (r))))))
 
+(defun process-markdown-string (string)
+  (reduce (lambda (x y) (concatenate 'string x y))
+	  (mapcar #'eval-markdown
+		  (keep-parsing (tokenize string)))))
+
 (defun process-markdown (file)
   "Parses a markdown file into my own HTML DSL, which can then easily be converted to HTML."
   (let ((file-contents (read-file file)))
-    (reduce (lambda (x y) (concatenate 'string x (br) y))
-	    (mapcar #'eval-markdown
-		    (keep-parsing (tokenize file-contents))))))
+    (process-markdown-string file-contents)))
+    
