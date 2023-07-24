@@ -46,9 +46,9 @@
    Everything else in body is always assumed to be the contents of the tag, and will be concatenated after being evaluated.
    After some blood, sweat and tears, symbols are now also evaluated, Except when they're attribute names.
    usage examples:
-   (tag p :attributes (name \"my paragraph\") \"my string in paragraph.\")
+   (tag p :attrs (name \"my paragraph\") \"my string in paragraph.\")
    (tag p \"Hello world in an unnamed paragraph.\")
-   If the first element of body is :attributes, the second element is taken to be a list of attributes."
+   If the first element of body is :attrs, the second element is taken to be a list of attributes."
   `(construct-tag ,(sane-stringify name)
 		  (list ,@(if (eql (first body) :attrs)
 			      (cddr body)
@@ -82,7 +82,8 @@
 (automate-tags
  html head body div span style
  code
- p b i a h1 h2 h3 h4 h5 h6 h7)
+ p b i a h1 h2 h3 h4 h5 h6 h7
+ ul ol li)
 
 (defun generate-from-file (fname &optional out-stream)
   "Generates an HTML site from a file written in our HTML DSL."

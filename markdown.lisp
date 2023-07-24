@@ -1,5 +1,4 @@
 (in-package :site-generator)
-
 (defmacro if-bind (pred then &optional else)
   "This is a somewhat important and yet very simple little macro.
    It's like if, except it binds the result of its predicate to a variable named 'it'"
@@ -25,6 +24,7 @@
 	    ("(" link-begin)
 	    (")" link-end)
 	    ("#" hash)
+	    ("-" dash)
 	    (,(format nil "~%") newline))))
     (unless (string= text "")
       (loop for i in tokens
@@ -137,7 +137,9 @@
 (define-single-matcher text)
 (define-single-matcher star)
 (define-single-matcher hash)
+(define-single-matcher dash)
 (define-single-matcher backtick)
+
 
 (defun code-block-parser (tokens)
   "Matches(/consumes) one backtick, then any and all tokens until another backtick (match includes the other backtick so that it is consumed).
@@ -212,6 +214,51 @@
 	   nil))
 
 
+
+(defun space-before-dash-parser (tokens)
+  "Checks if the next token is a bunch of spaces. Returns the number of spaces and remaining tokens."
+  (unless (null tokens)
+    (and (eql (ast-node-type (car tokens)) 'text) ; is the token of type text?
+	 (loop for i across (ast-node-value (car tokens)) unless (char= i #\Space) do (return nil)
+	       finally (return t)) ;is the token all-spaces?
+	 (eql (ast-node-type (cadr tokens)) 'dash) ; is the next token a dash?
+	 (list (length (ast-node-value (car tokens))) (cdr tokens))))) ;count the amount of spaces and return.
+
+(defun unordered-list-element-parser (tokens)
+  (if-bind (general-match tokens
+			  'dash-parser
+			  '(code-block-parser link-parser bold-parser italic-parser text-parser *)
+			  '(newline-parser eof-parser))
+	   (list (make-ast-node :value (rest (butlast (first it))) :type 'list-element)
+		 (second it))))
+
+(defun unordered-list-parser (tokens &optional (prev-spaces nil) (collected nil))
+  (let ((spaces (or (space-before-dash-parser tokens)
+		    (if (dash-parser tokens)
+			(list 0 tokens)))))
+    (if (null spaces)
+	(if (null collected)
+	    nil
+	    (list (reverse collected) tokens))
+	(if (null prev-spaces) ;if t, this is the first invocation.
+	    (if-bind (unordered-list-parser (second spaces) (first spaces))
+		     (list (make-ast-node :value (first it)
+					  :type 'unordered-list)
+			   (second it)))
+	    (cond
+	      ((= prev-spaces (first spaces))
+	       (if-bind (unordered-list-element-parser (second spaces))
+			(unordered-list-parser (second it) (first spaces) (cons (first it) collected))
+			(list (reverse collected) tokens)))
+	      ((< prev-spaces (first spaces))
+	       (if-bind (unordered-list-parser tokens (first spaces))
+			(unordered-list-parser (second it)
+					       prev-spaces
+					       (cons (make-ast-node :value (first it)
+								    :type 'unordered-list)
+						     collected))))
+	      (t (list (reverse collected) tokens)))))))
+
 (defun paragraph-parser (tokens)
   "Parses an entire paragraph. A paragraph may be made up of any combination these elements:
    code blocks, bold text, italic text, regular text, links... (more to come!)"
@@ -256,7 +303,7 @@
 	     
 
 (defun keep-parsing (tokens)
-  (if-bind (match-parser tokens '(header-parser paragraph-parser))
+  (if-bind (match-parser tokens '(header-parser unordered-list-parser paragraph-parser))
 	   (cons (first it) (keep-parsing (second it)))
 	   nil))
 
@@ -282,7 +329,9 @@
 		      (h3 . ,(lambda (ss) (h3 (conc-strs ss))))
 		      (h4 . ,(lambda (ss) (h4 (conc-strs ss))))
 		      (h5 . ,(lambda (ss) (h5 (conc-strs ss))))
-		      (h6 . ,(lambda (ss) (h6 (conc-strs ss)))))))
+		      (h6 . ,(lambda (ss) (h6 (conc-strs ss))))
+		      (unordered-list . ,(lambda (ss) (ul (conc-strs ss))))
+		      (list-element . ,(lambda (ss) (li (conc-strs ss)))))))
     (funcall (or (cdr (assoc (ast-node-type ast) evaluators)) default)
 	     (if (stringp (ast-node-value ast))
 		 (list (ast-node-value ast))
