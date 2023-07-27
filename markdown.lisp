@@ -224,10 +224,15 @@
 	 (eql (ast-node-type (cadr tokens)) 'dash) ; is the next token a dash?
 	 (list (length (ast-node-value (car tokens))) (cdr tokens))))) ;count the amount of spaces and return.
 
+(defun any-except-newline-parser (tokens)
+  "ugh."
+  (unless (newline-parser tokens)
+    (any-parser tokens)))
+
 (defun unordered-list-element-parser (tokens)
   (if-bind (general-match tokens
 			  'dash-parser
-			  '(code-block-parser link-parser bold-parser italic-parser text-parser *)
+			  '(code-block-parser link-parser bold-parser italic-parser text-parser any-except-newline-parser *)
 			  '(newline-parser eof-parser))
 	   (list (make-ast-node :value (rest (butlast (first it))) :type 'list-element)
 		 (second it))))
@@ -272,7 +277,7 @@
 					(list (make-ast-node :value (first it) :type 'any)
 					      (second it)))))))
     (if-bind (general-match tokens
-			    `(code-block-parser link-parser bold-parser italic-parser text-parser ,not-two-newlines *)
+			    `(code-block-parser unordered-list-parser link-parser bold-parser italic-parser text-parser ,not-two-newlines *)
 			    `(,two-newlines eof-parser))
 	     (list (make-ast-node :value (butlast (first it)) :type 'paragraph)
 		   (second it))
@@ -303,7 +308,7 @@
 	     
 
 (defun keep-parsing (tokens)
-  (if-bind (match-parser tokens '(header-parser unordered-list-parser paragraph-parser))
+  (if-bind (match-parser tokens '(header-parser  paragraph-parser))
 	   (cons (first it) (keep-parsing (second it)))
 	   nil))
 
@@ -311,13 +316,21 @@
   "Concatenate a list of strings."
   (apply #'concatenate 'string l))
 
+(defun escape-string (s)
+  "Escapes any HTML tags (and other special characters... maybe later?) that may already exist in a string."
+  (let ((replacements '(("<" "&lt;")
+			(">" "&gt;"))))
+    (loop for i in replacements do
+      (setf s (cl-ppcre:regex-replace-all (first i) s (second i))))
+    s))
+
 (defun eval-markdown (ast)
   "After the markdown source is processed into an abstract syntax tree, this function generates html from it."
   (let ((default (lambda (ss) (conc-strs ss)))
 	(evaluators `((text . ,(lambda (ss) (conc-strs ss)))
 		      (italic . ,(lambda (ss) (i (conc-strs ss))))
 		      (bold . ,(lambda (ss) (b (conc-strs ss))))
-		      (code-block . ,(lambda (ss) (code (conc-strs ss))))
+		      (code-block . ,(lambda (ss) (code (escape-string (conc-strs ss)))))
 		      (newline . ,(lambda (ss) (declare (ignore ss)) " "))
 		      (eof . ,(lambda (ss) (declare (ignore ss)) ""))
 		      (link-text . ,(lambda (ss) (conc-strs ss)))
@@ -334,7 +347,7 @@
 		      (list-element . ,(lambda (ss) (li (conc-strs ss)))))))
     (funcall (or (cdr (assoc (ast-node-type ast) evaluators)) default)
 	     (if (stringp (ast-node-value ast))
-		 (list (ast-node-value ast))
+		 (list (escape-string (ast-node-value ast)))
 		 (mapcar #'eval-markdown (ast-node-value ast))))))
 
 (defun read-file (f)

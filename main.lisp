@@ -59,7 +59,7 @@
 			      nil))))
 
 (defmacro css (&body body)
-  "Body will be (pair)'ed, sobody should be like: selector (key1 value1 key2 value2) selector2 (key3 value3) repeated as many times as necessary."
+  "Body will be (pair)'ed, sobody should be like: selector (:key1 value1 :key2 value2) selector2 (:key3 value3) repeated as many times as necessary."
   `(reduce (lambda (x y) (concatenate 'string x y))
 	   ',(loop for i in (pair body)
 		   collect
