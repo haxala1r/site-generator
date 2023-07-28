@@ -184,7 +184,7 @@
 	(end (make-single-matcher 'linktext-end)))
     (if-bind (general-match tokens
 			    opening
-			    '(code-block-parser bold-parser italic-parser text-parser *)
+			    '(code-block-parser bold-parser italic-parser text-parser any-parser *)
 			    end)
 	     (list (make-ast-node :value (rest (butlast (first it)))
 				  :type 'link-text)
@@ -277,7 +277,7 @@
 					(list (make-ast-node :value (first it) :type 'any)
 					      (second it)))))))
     (if-bind (general-match tokens
-			    `(code-block-parser unordered-list-parser link-parser bold-parser italic-parser text-parser ,not-two-newlines *)
+			    `(code-block-parser link-parser bold-parser italic-parser text-parser ,not-two-newlines *)
 			    `(,two-newlines eof-parser))
 	     (list (make-ast-node :value (butlast (first it)) :type 'paragraph)
 		   (second it))
@@ -308,7 +308,7 @@
 	     
 
 (defun keep-parsing (tokens)
-  (if-bind (match-parser tokens '(header-parser  paragraph-parser))
+  (if-bind (match-parser tokens '(header-parser unordered-list-parser  paragraph-parser))
 	   (cons (first it) (keep-parsing (second it)))
 	   nil))
 
@@ -360,9 +360,9 @@
       (format nil "~{~a~%~}" (c nil (r))))))
 
 (defun process-markdown-string (string)
-  (reduce (lambda (x y) (concatenate 'string x y))
-	  (mapcar #'eval-markdown
-		  (keep-parsing (tokenize string)))))
+  (conc-strs
+   (mapcar #'eval-markdown
+	   (keep-parsing (tokenize string)))))
 
 (defun process-markdown (file)
   "Parses a markdown file into my own HTML DSL, which can then easily be converted to HTML."
