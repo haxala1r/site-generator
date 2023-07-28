@@ -139,7 +139,10 @@
 (define-single-matcher hash)
 (define-single-matcher dash)
 (define-single-matcher backtick)
-
+(define-single-matcher linktext-begin)
+(define-single-matcher linktext-end)
+(define-single-matcher link-begin)
+(define-single-matcher link-end)
 
 (defun code-block-parser (tokens)
   "Matches(/consumes) one backtick, then any and all tokens until another backtick (match includes the other backtick so that it is consumed).
@@ -180,27 +183,26 @@
 	   nil))
 
 (defun link-text-parser (tokens)
-  (let ((opening (make-single-matcher 'linktext-begin))
-	(end (make-single-matcher 'linktext-end)))
+  (let ((any-except-end (lambda (ts)
+			  (unless (linktext-end-parser ts)
+			    (any-parser ts)))))
     (if-bind (general-match tokens
-			    opening
-			    '(code-block-parser bold-parser italic-parser text-parser any-parser *)
-			    end)
+			    'linktext-begin-parser
+			    `(code-block-parser bold-parser italic-parser text-parser ,any-except-end *)
+			    'linktext-end-parser)
 	     (list (make-ast-node :value (rest (butlast (first it)))
 				  :type 'link-text)
 		   (second it))
 	     nil)))
 
 (defun link-link-parser (tokens)
-  (let ((opening (make-single-matcher 'link-begin))
-	(any-but-end (lambda (ts)
-		       (unless (match-one ts 'link-end)
-			 (any-parser ts))))
-	(end (make-single-matcher 'link-end)))
+  (let ((any-but-end (lambda (ts)
+		       (unless (link-end-parser ts)
+			 (any-parser ts)))))
     (if-bind (general-match tokens
-			    opening
+			    'link-begin-parser
 			    (list any-but-end '*)
-			    end)
+			    'link-end-parser)
 	     (list (make-ast-node :value (rest (butlast (first it))) :type 'link-link)
 		   (second it))
 	     nil)))
